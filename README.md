@@ -7,7 +7,7 @@
 
 ### FFmpeg
 
-你需要[ffmpeg]https://ffmpeg.org/。请确保在命令行输入`ffmpeg`可以正常调用ffmpeg，或者
+你需要[ffmpeg](https://ffmpeg.org/)。请确保在命令行输入`ffmpeg`可以正常调用ffmpeg，或者
 你知道明确的ffmpeg的位置。
 
 ### Python requirements
@@ -29,8 +29,8 @@ pip install -r requirements.txt
 
 这个脚本并不能帮你做人声分离，你需要用其他的软件或者库来完成这件事。
 
-* [Ultimate Vocal Remover](https://ultimatevocalremover.com/)是目前我用过效果最好的软件，免费
-* [spleeter](https://github.com/deezer/spleeter)是一个开源的人声分离库
+* [Ultimate Vocal Remover](https://ultimatevocalremover.com/) 是目前我用过效果最好的软件，免费
+* [spleeter](https://github.com/deezer/spleeter) 是一个开源的人声分离库
 
 ## 使用
 
