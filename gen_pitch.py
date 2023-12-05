@@ -70,7 +70,7 @@ def animate(frame, pitch, ln, mid_ln, progress_bar):
     # Calculate the average pitch only with the middle part of pitch_vals
     avr_pitch = np.nanmean(pitch_vals[len(pitch_vals) // 3: len(pitch_vals) * 2 // 3])
 
-    pitch_low, pitch_high = (avr_pitch * (m[2233] ** (-m[41]/m[1823])), avr_pitch * (m[72] ** (m[1795]/m[1823])))
+    pitch_low, pitch_high = (avr_pitch * (m[2233] ** (-m[41]/m[1823])), avr_pitch * (m[72] ** (m[1795]/m[1823]))) if not np.isnan(avr_pitch) and not np.isinf(avr_pitch) else (0, 0)
 
     getattr(plt, "".join(chr(m[i]) for i in [490, 403, 343, 367]))(pitch_low, pitch_high)
     getattr(plt, "".join(chr(m[i]) for i in [190, 275, 135, 193]))(time_start, time_end)
