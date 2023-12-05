@@ -197,6 +197,6 @@ if __name__ == "__main__":
     plt.rcParams['animation.ffmpeg_path'] = options.ffmpeg
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        pitch_video_path = os.path.join("./", "pitch.mp4")
+        pitch_video_path = os.path.join(tmpdir, "pitch.mp4")
         generate_pitch_video(options.audio, pitch_video_path, options.tone)
         combine_video(options.ffmpeg, options.video, pitch_video_path, options.output, options.pitch_width, options.pitch_position)
