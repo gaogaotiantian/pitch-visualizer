@@ -79,7 +79,7 @@ def animate(frame, pitch, ln, mid_ln, progress_bar):
 def generate_pitch_video(path, output, tone):
     # Get all the pitch in the audio and plot it
     snd = parselmouth.Sound(path)
-    pitch = snd.to_pitch()
+    pitch = snd.to_pitch_ac()
     plt.rcParams.update({'font.size': 15})
     fig = plt.figure(figsize=(19.2, 10.8), layout="tight")
     plt.twinx()
@@ -144,6 +144,7 @@ def combine_video(ffmpeg, video_path, pitch_video_path, output_path, pitch_width
         raise ValueError(f"Invalid pitch position {pitch_position}")
 
     with magic.magic3() as m:
+        print(f"Writing to {os.path.abspath(output_path)}")
         subprocess.run([
             ffmpeg,
             '-loglevel', 'error',
