@@ -41,17 +41,6 @@ def draw_standard(tone):
         plt.axline((0, f), (1, f), lw=2)
 
 
-def draw_pitch(pitch):
-    # Extract selected pitch contour, and
-    # replace unvoiced samples by NaN to not plot
-    pitch_values = pitch.selected_array['frequency']
-    pitch_values[pitch_values==0] = np.nan
-    plt.grid(False)
-
-    plt.yscale('log')
-    plt.ylabel("fundamental frequency [Hz]")
-
-
 def animate(frame, pitch, ln, mid_ln, progress_bar):
     m = magic.magic()
     progress_bar.update(1)
@@ -84,7 +73,6 @@ def generate_pitch_video(path, output, tone):
     plt.rcParams.update({'font.size': 15})
     fig = plt.figure(figsize=(19.2, 10.8), layout="tight")
     plt.twinx()
-    draw_pitch(pitch)
 
     # Draw the standard pitch in the tone
     draw_standard(tone)
