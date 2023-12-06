@@ -3,6 +3,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+import warnings
 from functools import partial
 
 import matplotlib.pyplot as plt
@@ -15,33 +16,53 @@ import magic
 
 
 FRAME_PER_SEC = 15
-TONES = ['A', 'A#', 'B', 'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#']
+TONES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', "A", "A#", "B"]
 
 
 class Tonality:
     base_diff = [0, 2, 4, 5, 7, 9, 11]
+    tone_freq_map = {
+        f"{t}{i}": 2 ** (TONES.index(t) / 12 + i) * 16.3516
+        for t in TONES for i in range(0, 8)
+    }
     def __init__(self, tone):
         assert tone in TONES
-        self.base_freq = self.tone_to_freq(tone)
+        self.tone = tone
+        self.scale = [TONES[(TONES.index(self.tone) + diff) % len(TONES)] for diff in self.base_diff]
 
-    def tone_to_freq(self, tone):
-        A_freq = 440
-        return A_freq * (2 ** (TONES.index(tone) / 12))
+    @classmethod
+    def normalize_to_freq(cls, tone_or_freq):
+        if isinstance(tone_or_freq, (float, int)):
+            return tone_or_freq
+        return cls.tone_freq_map[tone_or_freq]
 
-    def get_freq(self):
+    def get_tone_and_freq(self, min_freq=0, max_freq=4186):
+        min_freq = self.normalize_to_freq(min_freq)
+        max_freq = self.normalize_to_freq(max_freq)
+
         ret = []
-        for r in range(-3, 2):
-            base = self.base_freq * (2 ** r)
-            ret.extend([base * (2 ** (diff / 12)) for diff in self.base_diff])
+        for i in range(0, 8):
+            for base_tone in self.scale:
+                tone = f"{base_tone}{i}"
+                freq = self.tone_freq_map[tone]
+                if min_freq <= freq <= max_freq:
+                    ret.append((tone, freq))
+
+        ret.sort()
         return ret
 
 
-def draw_standard(tone):
-    for f in Tonality(tone).get_freq():
+def draw_standard(tone, min_freq, max_freq):
+    labels = []
+    for tone, f in Tonality(tone).get_tone_and_freq(min_freq, max_freq):
         plt.axline((0, f), (1, f), lw=2)
+        label = plt.text(1.01, f, tone, ha='left', va='bottom', fontsize=18)
+        label.set_visible(False)
+        labels.append(label)
+    return labels
 
 
-def animate(frame, pitch, ln, mid_ln, progress_bar):
+def animate(frame, pitch, ln, mid_ln, progress_bar, labels):
     m = magic.magic()
     progress_bar.update(1)
     pitch_values = pitch.selected_array['frequency']
@@ -57,31 +78,45 @@ def animate(frame, pitch, ln, mid_ln, progress_bar):
     mid_ln.set_data([[curr_time, curr_time], [0, 1]])
 
     # Calculate the average pitch only with the middle part of pitch_vals
-    avr_pitch = np.nanmean(pitch_vals[len(pitch_vals) // 3: len(pitch_vals) * 2 // 3])
+    # np.nanmean will generate a warning if all values are nan, ignore it
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        avr_pitch = np.nanmean(pitch_vals[len(pitch_vals) // 3: len(pitch_vals) * 2 // 3])
 
     if not np.isnan(avr_pitch):
         pitch_low, pitch_high = (avr_pitch * (m[2233] ** (-m[41]/m[1823])), avr_pitch * (m[72] ** (m[1795]/m[1823])))
         getattr(plt, "".join(chr(m[i]) for i in [490, 403, 343, 367]))(pitch_low, pitch_high)
 
+        # Set labels' visibilities based on pitch
+        for label in labels:
+            _, y = label.get_position()
+            if pitch_low <= y <= pitch_high:
+                label.set_visible(True)
+            else:
+                label.set_visible(False)
+
+    for label in labels:
+        _, y = label.get_position()
+        label.set_position((time_start + 0.01, y))
+
     getattr(plt, "".join(chr(m[i]) for i in [190, 275, 135, 193]))(time_start, time_end)
 
 
-def generate_pitch_video(path, output, tone):
+def generate_pitch_video(path, output, tone, min_freq, max_freq):
     # Get all the pitch in the audio and plot it
     snd = parselmouth.Sound(path)
-    pitch = snd.to_pitch_ac()
+    pitch = snd.to_pitch_ac(pitch_floor=min_freq, pitch_ceiling=max_freq)
     plt.rcParams.update({'font.size': 15})
     fig = plt.figure(figsize=(19.2, 10.8), layout="tight")
-    plt.twinx()
 
-    # Draw the standard pitch in the tone
-    draw_standard(tone)
+    labels = draw_standard(tone, min_freq, max_freq)
     plt.xlim([snd.xmin, snd.xmax])
 
     # Draw the mid line to indicate the current time
     ln, = plt.plot([0], [0], '.', markersize=10, color="orange")
     mid_ln = plt.axvline(0, color="red")
 
+    plt.gca().axes.get_yaxis().set_visible(False)
     plt.yscale('log')
     plt.ylabel("fundamental frequency [Hz]")
 
@@ -93,9 +128,8 @@ def generate_pitch_video(path, output, tone):
         # Do the animation and save to mp4
         ani = animation.FuncAnimation(
             fig,
-            partial(animate, pitch=pitch, ln=ln, mid_ln=mid_ln, progress_bar=progress_bar),
-            frames=range(int(render_time * FRAME_PER_SEC)),
-            init_func=partial(draw_standard, tone))
+            partial(animate, pitch=pitch, ln=ln, mid_ln=mid_ln, progress_bar=progress_bar, labels=labels),
+            frames=range(int(render_time * FRAME_PER_SEC)))
 
         FFWriter = animation.FFMpegWriter(fps=FRAME_PER_SEC)
         ani.save(output, writer=FFWriter)
@@ -160,6 +194,8 @@ if __name__ == "__main__":
     parser.add_argument("--pitch_width", type=int, default=None)
     parser.add_argument("--pitch_position", type=str, default="top_right",
                         choices=["top_right", "top_left", "bottom_right", "bottom_left"])
+    parser.add_argument("--min_pitch", type=str, default="D2")
+    parser.add_argument("--max_pitch", type=str, default="G5")
 
     options = parser.parse_args()
 
@@ -184,9 +220,16 @@ if __name__ == "__main__":
     if options.output is None:
         options.output = ".".join(options.video.split(".")[:-1]) + "_with_pitch.mp4"
 
+    try:
+        min_freq = Tonality.normalize_to_freq(options.min_pitch)
+        max_freq = Tonality.normalize_to_freq(options.max_pitch)
+    except Exception:
+        print(f"Invalid min/max pitch {options.min_pitch}/{options.max_pitch}")
+        exit(1)
+
     plt.rcParams['animation.ffmpeg_path'] = options.ffmpeg
 
     with tempfile.TemporaryDirectory() as tmpdir:
         pitch_video_path = os.path.join(tmpdir, "pitch.mp4")
-        generate_pitch_video(options.audio, pitch_video_path, options.tone)
+        generate_pitch_video(options.audio, pitch_video_path, options.tone, min_freq, max_freq)
         combine_video(options.ffmpeg, options.video, pitch_video_path, options.output, options.pitch_width, options.pitch_position)

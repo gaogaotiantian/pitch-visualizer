@@ -7,8 +7,8 @@
 
 ### FFmpeg
 
-你需要[ffmpeg](https://ffmpeg.org/)。请确保在命令行输入`ffmpeg`可以正常调用ffmpeg，或者
-你知道明确的ffmpeg的位置。
+你需要[ffmpeg](https://ffmpeg.org/)。请确保在命令行输入`ffmpeg`可以正常调用ffmpeg，
+或者你知道明确的ffmpeg的位置。
 
 ### Python requirements
 
@@ -53,9 +53,14 @@ python gen_pitch.py --audio wjk_raw.mp3 -t E wjk.mp4 -o wjk_with_pitch.mp4
 
 ### 其他的选项
 
-* `--ffmpeg`可以指定你想用的ffmpeg，在你PATH中不存在ffmpeg的时候需要使用
-* `--pitch_width`设置音高图的宽度，默认是原始视频的一半
-* `--pitch_position`设置音高图的位置，默认是`top_right`
+* `--ffmpeg` 可以指定你想用的ffmpeg，在你PATH中不存在ffmpeg的时候需要使用
+* `--pitch_width` 设置音高图的宽度，默认是原始视频的一半
+* `--pitch_position` 设置音高图的位置，默认是`top_right`
+* `--min_pitch` 设置识别的最低的音，默认是`D2`
+* `--max_pitch` 设置识别的最高的音，默认是`G5`
+
+如果你对歌曲的音域比较了解，通过设置`--min_pitch`和`--max_pitch`可以有效增加音高识别的准确率，
+同时还可以加快渲染速度。
 
 ## LICENSE
 
