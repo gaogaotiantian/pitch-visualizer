@@ -1,4 +1,4 @@
 matplotlib>=3.6.0
-numpy
+numpy<2
 tqdm
 praat-parselmouth==0.4.3
